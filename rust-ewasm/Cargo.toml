@@ -1,0 +1,12 @@
+[package]
+name = "rust-ewasm"
+version = "0.0.1"
+authors = ["Shuhei Hiya <syuhei176@gmail.com>"]
+license = "Apache-2.0"
+repository = "https://github.com/cryptoeconomicslab/research"
+description = "ewasm demo for Rust"
+
+[features]
+default = [ "std" ]
+std = []
+
