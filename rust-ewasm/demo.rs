@@ -1,4 +1,5 @@
 // an ewasm test case, originally written in wasm, ported to Rust
+// modify https://github.com/ewasm/rust-ewasm
 
 extern "C" {
   pub fn ethereum_getAddress(resultOffset: *const u32);
