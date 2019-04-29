@@ -1,0 +1,11 @@
+[[package]]
+name = "chamber-core"
+version = "0.0.1"
+
+[[package]]
+name = "chamber-wallet"
+version = "0.0.1"
+dependencies = [
+ "chamber-core 0.0.1",
+]
+

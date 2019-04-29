@@ -1,0 +1,6 @@
+[package]
+name = "chamber_core"
+version = "0.0.1"
+authors = ["Cryptoeconomics Lab <https://www.cryptoeconomicslab.com/>"]
+description = "Plasma Chamber Core"
+edition = "2018"
