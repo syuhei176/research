@@ -30,6 +30,6 @@ pub fn greet() {
     let wallet = Wallet{
         number: 0
     };
-    log("Welcome to wallet!")
+    log("Welcome to wallet!");
     log(&format!("The number is {}", wallet.hello()));
 }
