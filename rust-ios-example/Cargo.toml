@@ -1,0 +1,15 @@
+[package]
+name = "rust-ios-example"
+version = "0.1.0"
+authors = ["SHUHEI HIYA <syuhei176@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+plasma-core = { git = "https://github.com/cryptoeconomicslab/plasma-rust-framework.git", branch="remove-failure", path="./core" }
+bytes = "0.4.12"
+rlp = "0.3.0"
+ethereum-types = "0.4"
+
+[lib]
+name = "rust"
+crate-type = ["staticlib", "cdylib"]
