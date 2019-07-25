@@ -1,0 +1,15 @@
+[package]
+name = "decision-rs"
+version = "0.1.0"
+authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
+edition = "2018"
+
+[dependencies]
+bytes = "0.4.12"
+ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
+ethereum-types = "^0.5.2"
+tiny-keccak = "1.5"
+
+[dependencies.plasma-db]
+git = "https://github.com/cryptoeconomicslab/plasma-rust-framework"
+# features = ["require-leveldb"]
