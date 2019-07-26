@@ -3,7 +3,7 @@ use crate::layer2::Layer2Core;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::H256;
-use plasma_db::traits::kvs::{BaseDbKey, Bucket, KeyValueStore};
+use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
 use tiny_keccak::Keccak;
 
 pub struct Verifier {}
@@ -90,7 +90,7 @@ impl DecisionValue {
     }
     fn from_tuple(tuple: &[Token]) -> Self {
         let decision = tuple[0].clone().to_bool();
-        let witness = tuple[0].clone().to_bytes();
+        let witness = tuple[1].clone().to_bytes();
         DecisionValue::new(
             decision.unwrap(),
             PreimageExistsWitness::from_abi(&witness.unwrap()).unwrap(),
@@ -165,8 +165,8 @@ mod tests {
         let decided: Decision =
             preimage_exists_decider.decide(&input, PreimageExistsWitness::new(Bytes::from("test")));
         assert_eq!(decided.get_outcome(), true);
-        // let status = preimage_exists_decider.check_decision(&input);
-        // assert_eq!(status, DecisionStatus::Decided(true));
+        let status = preimage_exists_decider.check_decision(&input);
+        assert_eq!(status, DecisionStatus::Decided(true));
     }
 
 }

@@ -1,15 +1,15 @@
-use plasma_db::impls::kvs::CoreDbMemoryImpl;
+use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::kvs::{BaseDbKey, Bucket, KeyValueStore};
 use plasma_db::traits::db::DatabaseTrait;
 
 pub struct Layer2Core {
-    db: CoreDbMemoryImpl,
+    db: CoreDbLevelDbImpl,
 }
 
 impl Default for Layer2Core {
     fn default() -> Self {
         Layer2Core {
-            db: CoreDbMemoryImpl::open("test"),
+            db: CoreDbLevelDbImpl::open("test"),
         }
     }
 }
