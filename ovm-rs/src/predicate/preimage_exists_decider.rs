@@ -27,7 +27,7 @@ impl Verifier {
 
 pub struct PreimageExistsInput {
     verifier: Verifier,
-    parameters: Bytes,
+    _parameters: Bytes,
     hash: H256,
 }
 
@@ -35,7 +35,7 @@ impl PreimageExistsInput {
     pub fn new(verifier: Verifier, parameters: Bytes, hash: H256) -> Self {
         PreimageExistsInput {
             verifier,
-            parameters,
+            _parameters: parameters,
             hash,
         }
     }
@@ -125,10 +125,12 @@ impl PreimageExistsDecider {
 
         let decision_key = input.hash;
         let decision_value = DecisionValue::new(true, witness.clone());
-        self.layer2.bucket("preimage_exists_decider").put(
+        if self.layer2.bucket("preimage_exists_decider").put(
             &BaseDbKey::from(decision_key.as_bytes()),
             &decision_value.to_abi(),
-        );
+        ).is_err() {
+            panic!("failed to store data")
+        }
 
         Decision::new(true, vec![])
     }

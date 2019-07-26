@@ -1,7 +1,6 @@
 use bytes::Bytes;
-use ethereum_types::{Address, H256};
+use ethereum_types::Address;
 
-type Bytes32 = H256;
 type Predicate = Address;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -13,20 +12,20 @@ pub struct Property {
 #[derive(Debug, Eq, PartialEq)]
 pub struct ImplicationProofElement {
     implication: Property,
-    implicationWitness: Bytes,
+    implication_witness: Bytes,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Decision {
     outcome: bool,
-    implicationProof: Vec<ImplicationProofElement>,
+    implication_proof: Vec<ImplicationProofElement>,
 }
 
 impl Decision {
-    pub fn new(outcome: bool, implicationProof: Vec<ImplicationProofElement>) -> Self {
+    pub fn new(outcome: bool, implication_proof: Vec<ImplicationProofElement>) -> Self {
         Decision {
             outcome,
-            implicationProof,
+            implication_proof,
         }
     }
     pub fn get_outcome(&self) -> bool {
