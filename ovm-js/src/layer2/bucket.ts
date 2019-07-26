@@ -1,5 +1,8 @@
 type HexString = string
 
+/**
+ * @description Bucket enable not only storing data but also sharing data with other clients.
+ */
 export class Bucket {
   data: Map<string, string> = new Map<string, string>()
   prefix: HexString = ''

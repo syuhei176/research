@@ -17,6 +17,9 @@ type PreimageExistsWitness = {
   preimage: string
 }
 
+/**
+ * @description PreimageExistsDecider is simple decider which decide whether preimage exists or not
+ */
 export class PreimageExistsDecider {
   l1: Layer1;
   l2: Layer2;
@@ -40,6 +43,7 @@ export class PreimageExistsDecider {
       decision: true,
       witness: witness
     }
+    // store and publish data
     this.bucket.put(decisionKey, JSON.stringify(decisionValue))
 
     return {
@@ -50,6 +54,8 @@ export class PreimageExistsDecider {
 
   checkDecision(input: PreimageExistsInput): DecisionStatus {
     let decisionKey = input.hash
+    // get data from local storage
+    // storage is synced with other clients
     let result = this.bucket.get(decisionKey)
     if (result) {
       let decisionValue: any = JSON.parse(result)
