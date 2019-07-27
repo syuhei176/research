@@ -1,47 +1,50 @@
-import { Bytes32, Decision, DecisionStatus } from './types'
-import { Layer1 } from '../layer1';
-import { Layer2 } from '../layer2';
-import { Bucket } from '../layer2/bucket';
+import { Bytes32, Decider, Decision, DecisionStatus } from './types'
+import { Layer1 } from '../layer1'
+import { Layer2 } from '../layer2'
+import { Bucket } from '../layer2/bucket'
 
 interface Verifier {
   hash(preimage: string): Bytes32
 }
 
-type PreimageExistsInput = {
+interface PreimageExistsInput {
   verifier: Verifier
   parameters: string
   hash: Bytes32
 }
 
-type PreimageExistsWitness = {
+interface PreimageExistsWitness {
   preimage: string
 }
 
 /**
  * @description PreimageExistsDecider is simple decider which decide whether preimage exists or not
  */
-export class PreimageExistsDecider {
-  l1: Layer1;
-  l2: Layer2;
-  bucket: Bucket;
+export class PreimageExistsDecider implements Decider {
+  public l1: Layer1
+  public l2: Layer2
+  public bucket: Bucket
   constructor(l1: Layer1, l2: Layer2) {
     this.l1 = l1
     this.l2 = l2
     this.bucket = this.l2.bucket('preimage_exists_decider')
   }
-  decide(input: PreimageExistsInput, witness: PreimageExistsWitness): Decision {
-    let verify = input.verifier
-    let parameters = input.parameters
-    let preimage = witness.preimage
+  public decide(
+    input: PreimageExistsInput,
+    witness: PreimageExistsWitness
+  ): Decision {
+    const verify = input.verifier
+    const parameters = input.parameters
+    const preimage = witness.preimage
 
     if (verify.hash(preimage) !== input.hash) {
       throw new Error('invalid preimage')
     }
 
-    let decisionKey = input.hash
-    let decisionValue = {
+    const decisionKey = input.hash
+    const decisionValue = {
       decision: true,
-      witness: witness
+      witness
     }
     // store and publish data
     this.bucket.put(decisionKey, JSON.stringify(decisionValue))
@@ -52,17 +55,23 @@ export class PreimageExistsDecider {
     }
   }
 
-  checkDecision(input: PreimageExistsInput): DecisionStatus {
-    let decisionKey = input.hash
+  public checkDecision(input: PreimageExistsInput): Decision {
+    const decisionKey = input.hash
     // get data from local storage
     // storage is synced with other clients
-    let result = this.bucket.get(decisionKey)
+    const result = this.bucket.get(decisionKey)
     if (result) {
-      let decisionValue: any = JSON.parse(result)
+      const decisionValue: any = JSON.parse(result)
       if (decisionValue) {
-        return decisionValue.decision
+        return {
+          outcome: decisionValue.decision,
+          implicationProof: [decisionValue.witness]
+        }
       }
     }
-    return undefined
+    return {
+      outcome: undefined,
+      implicationProof: []
+    }
   }
 }
