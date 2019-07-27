@@ -1,10 +1,11 @@
-use super::types::{Decision, DecisionStatus};
+use super::types::{Decider, Decision, DecisionStatus, ImplicationProofElement, Property, Witness};
 use crate::layer2::Layer2Core;
-use bytes::Bytes;
+use crate::predicate::abi::{Decodable, Encodable};
 use ethabi::{ParamType, Token};
-use ethereum_types::H256;
+use ethereum_types::{Address, H256};
 use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
 use tiny_keccak::Keccak;
+use bytes::Bytes;
 
 pub struct Verifier {}
 impl Verifier {
@@ -27,7 +28,7 @@ impl Verifier {
 
 pub struct PreimageExistsInput {
     verifier: Verifier,
-    _parameters: Bytes,
+    parameters: Bytes,
     hash: H256,
 }
 
@@ -35,9 +36,12 @@ impl PreimageExistsInput {
     pub fn new(verifier: Verifier, parameters: Bytes, hash: H256) -> Self {
         PreimageExistsInput {
             verifier,
-            _parameters: parameters,
+            parameters,
             hash,
         }
+    }
+    pub fn get_parameters(&self) -> &Bytes {
+        &self.parameters
     }
 }
 
@@ -50,12 +54,22 @@ impl PreimageExistsWitness {
     pub fn new(preimage: Bytes) -> Self {
         PreimageExistsWitness { preimage }
     }
+}
+
+impl Witness for PreimageExistsWitness {}
+
+
+impl Encodable for PreimageExistsWitness {
     fn to_abi(&self) -> Vec<u8> {
         ethabi::encode(&self.to_tuple())
     }
     fn to_tuple(&self) -> Vec<Token> {
         vec![Token::Bytes(self.preimage.to_vec())]
     }
+}
+
+impl Decodable for PreimageExistsWitness {
+    type Ok = PreimageExistsWitness;
     fn from_tuple(tuple: &[Token]) -> Self {
         let preimage = tuple[0].clone().to_bytes();
         PreimageExistsWitness::new(Bytes::from(preimage.unwrap()))
@@ -67,18 +81,24 @@ impl PreimageExistsWitness {
     }
 }
 
-pub struct DecisionValue {
+pub struct PreimageExistsDecisionValue {
     decision: bool,
     witness: PreimageExistsWitness,
 }
 
-impl DecisionValue {
+impl PreimageExistsDecisionValue {
     pub fn new(decision: bool, witness: PreimageExistsWitness) -> Self {
-        DecisionValue { decision, witness }
+        PreimageExistsDecisionValue { decision, witness }
     }
     pub fn get_decision(&self) -> bool {
         self.decision
     }
+    pub fn get_witness(&self) -> &PreimageExistsWitness {
+        &self.witness
+    }
+}
+
+impl Encodable for PreimageExistsDecisionValue {
     fn to_abi(&self) -> Vec<u8> {
         ethabi::encode(&self.to_tuple())
     }
@@ -88,10 +108,14 @@ impl DecisionValue {
             Token::Bytes(self.witness.to_abi()),
         ]
     }
+}
+
+impl Decodable for PreimageExistsDecisionValue {
+    type Ok = PreimageExistsDecisionValue;
     fn from_tuple(tuple: &[Token]) -> Self {
         let decision = tuple[0].clone().to_bool();
         let witness = tuple[1].clone().to_bytes();
-        DecisionValue::new(
+        PreimageExistsDecisionValue::new(
             decision.unwrap(),
             PreimageExistsWitness::from_abi(&witness.unwrap()).unwrap(),
         )
@@ -115,8 +139,11 @@ impl Default for PreimageExistsDecider {
     }
 }
 
-impl PreimageExistsDecider {
-    pub fn decide(&self, input: &PreimageExistsInput, witness: PreimageExistsWitness) -> Decision {
+impl Decider for PreimageExistsDecider {
+    type Input = PreimageExistsInput;
+    type Witness = PreimageExistsWitness;
+
+    fn decide(&self, input: &PreimageExistsInput, witness: PreimageExistsWitness) -> Decision {
         let preimage = &witness.preimage;
 
         if input.verifier.hash(preimage) != input.hash {
@@ -124,37 +151,51 @@ impl PreimageExistsDecider {
         }
 
         let decision_key = input.hash;
-        let decision_value = DecisionValue::new(true, witness.clone());
-        if self.layer2.bucket("preimage_exists_decider").put(
-            &BaseDbKey::from(decision_key.as_bytes()),
-            &decision_value.to_abi(),
-        ).is_err() {
+        let decision_value = PreimageExistsDecisionValue::new(true, witness.clone());
+        if self
+            .layer2
+            .bucket("preimage_exists_decider")
+            .put(
+                &BaseDbKey::from(decision_key.as_bytes()),
+                &decision_value.to_abi(),
+            )
+            .is_err()
+        {
             panic!("failed to store data")
         }
 
-        Decision::new(true, vec![])
+        Decision::new(DecisionStatus::Decided(true), vec![])
     }
-    pub fn check_decision(&self, input: &PreimageExistsInput) -> DecisionStatus {
+    fn check_decision(&self, input: &PreimageExistsInput) -> Decision {
         let decision_key = input.hash;
         let result = self
             .layer2
             .bucket("preimage_exists_decider")
             .get(&BaseDbKey::from(decision_key.as_bytes()));
-        if let Ok(Some(decision_value_vytes)) = result {
-            let decision_value = DecisionValue::from_abi(&decision_value_vytes).unwrap();
-            return DecisionStatus::Decided(decision_value.get_decision());
+        if let Ok(Some(decision_value_bytes)) = result {
+            let decision_value =
+                PreimageExistsDecisionValue::from_abi(&decision_value_bytes).unwrap();
+            return Decision::new(
+                DecisionStatus::Decided(decision_value.get_decision()),
+                vec![ImplicationProofElement::new(
+                    Property::new(Address::zero(), input.get_parameters().clone()),
+                    Bytes::from(decision_value.get_witness().to_abi()),
+                )],
+            );
         }
-        DecisionStatus::Undecided
+
+        Decision::new(DecisionStatus::Undecided, vec![])
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        Decision, PreimageExistsDecider, PreimageExistsInput, PreimageExistsWitness, Verifier,
+        Decision, DecisionStatus, PreimageExistsDecider, PreimageExistsInput, PreimageExistsWitness, Verifier,
     };
-    use crate::predicate::types::DecisionStatus;
+    use crate::predicate::types::Decider;
     use bytes::Bytes;
+
 
     #[test]
     fn test_decide() {
@@ -166,9 +207,9 @@ mod tests {
         );
         let decided: Decision =
             preimage_exists_decider.decide(&input, PreimageExistsWitness::new(Bytes::from("test")));
-        assert_eq!(decided.get_outcome(), true);
+        assert_eq!(decided.get_outcome(), &DecisionStatus::Decided(true));
         let status = preimage_exists_decider.check_decision(&input);
-        assert_eq!(status, DecisionStatus::Decided(true));
+        assert_eq!(status.get_outcome(), &DecisionStatus::Decided(true));
     }
 
 }
